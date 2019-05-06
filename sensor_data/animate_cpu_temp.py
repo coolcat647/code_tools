@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 import numpy as np
 import os
+import sys
 import time
 import datetime
 import signal
@@ -11,6 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import pandas as pd
 import xlwt
+from argparse import ArgumentParser
 import atexit
 
 # For graphic
@@ -35,12 +37,22 @@ sheet1 = xlsbook.add_sheet('Sheet 1')
 sheet1.write(0, 0, 'Time')
 sheet1.write(0, 1, 'CPU Temperature')
 
+global is_saved
+is_saved = False
 
-def shutdown_callback():
-    filepath = os.path.expanduser('~')+'/cpuTemp'+start_time.strftime('%Y-%m-%d-%H-%M-%S')+'.xls'
-    print('Saving all values to ' + filepath)
-    global xlsbook
-    xlsbook.save(filepath)
+def shutdown_callback(signal=None, frame=None):
+    global is_saved
+    if not is_saved:
+        is_saved = True
+        plt.close()
+        filepath = os.path.expanduser('~')+'/cpuTemp'+start_time.strftime('%Y-%m-%d-%H-%M-%S')+'.xls'
+        if len(xdata) > 0:
+            print('Saving all values to ' + filepath)
+            global xlsbook
+            xlsbook.save(filepath)
+        else:
+            print('Close program without saving data.')
+        sys.exit(0)
 
 
 def get_cpu_temp():
@@ -106,7 +118,7 @@ def update(frame):
     xdata.append(now_time)
     ydata.append(cpu_temp)
     ln.set_data(xdata, ydata)
-    print(now_time.strftime('%Y-%m-%d-%H-%M-%S'), ' CPU Temp:',str(cpu_temp))
+    print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp))
     
     if len(xdata) > N_SAMPLES*0.8:
         update_grid(xdata[1])
@@ -117,7 +129,33 @@ def update(frame):
 
 
 if __name__ == "__main__":
-    atexit.register(shutdown_callback)
-    ani = FuncAnimation(fig, update, init_func=init, 
+    signal.signal(signal.SIGINT, shutdown_callback)
+
+    parser = ArgumentParser()
+    parser.add_argument('--plot', '-p', type=str, help='Plot animation: ture or false', default='true')
+    parser.add_argument('--freq', '-f', type=float, help='Sampling frequency in (ms)', default=interval_in_ms)
+    args = parser.parse_args()
+    if args.freq >= 500:
+        interval_in_ms = args.freq
+
+    if args.plot.lower() == 'false':
+        while True:
+            now_time = datetime.datetime.now()      # x axis data
+            cpu_temp = get_cpu_temp()               # y axis data
+    
+            # Write data to xls sheet
+            global xls_cnt
+            xls_cnt = xls_cnt + 1
+            global sheet1
+            sheet1.write(xls_cnt, 0, str(now_time))
+            sheet1.write(xls_cnt, 1, str(cpu_temp))
+            xdata.append(now_time)
+            ydata.append(cpu_temp)
+            print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp))
+            time.sleep(interval_in_ms/1000)
+            
+    elif args.plot.lower() == 'true':
+        atexit.register(shutdown_callback)
+        ani = FuncAnimation(fig, update, init_func=init, 
                             interval=interval_in_ms, repeat=False)
-    plt.show()
+        plt.show()
