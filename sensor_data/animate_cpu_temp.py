@@ -18,7 +18,8 @@ import atexit
 # For graphic
 fig, ax = plt.subplots(figsize=(8, 4.5))
 xdata, ydata = [], []
-ln, = plt.plot([], [], 'o')
+data_line, = plt.plot([], [], '-')
+danger_line, = plt.plot([], [], 'r--')
 
 # Custom Parameters
 N_SAMPLES = 100
@@ -64,6 +65,7 @@ def get_cpu_temp():
     cpu_temp = float(ret_str[ret_str.find('=')+1: ret_str.find('\'')])
     return cpu_temp
         
+
 def update_grid(start_time):
     end_time = start_time + datetime.timedelta(seconds=interval_in_ms/1000*N_SAMPLES)
     xgrid_start = start_time + datetime.timedelta(seconds=-start_time.second) + datetime.timedelta(seconds=start_time.second//10*10)
@@ -85,22 +87,19 @@ def init():
     # Set X axis grid ticks and limitation of axis
     global start_time
     start_time = datetime.datetime.now() 
-    # end_time = start_time + datetime.timedelta(seconds=interval_in_ms/1000*N_SAMPLES)
-    # xgrid_start = start_time + datetime.timedelta(seconds=-start_time.second) + datetime.timedelta(seconds=start_time.second//10*10)
-    # xgrid_list = []
-    # for i in range(N_GRIDS):
-    #     xgrid_list.append(md.date2num(xgrid_start + datetime.timedelta(seconds=i*N_GRIDS*interval_in_ms/1000)))
-    # ax.set_xticks(xgrid_list)
-    # ax.set_xlim(start_time, end_time)
     update_grid(start_time=start_time)
     ax.set_ylim(20, 100)
-    
+
+    # danger line
+    xlim = plt.gca().get_xlim()
+    danger_line.set_data(xlim, [85, 85])
+
     # Turn on grid, legend, xlabel and ylabel
     plt.grid(b=None, which='major', axis='both')
-    plt.legend(['CPU Temperature'])
-    plt.xlabel('Time (HH:MM)')
+    plt.legend(['CPU Temperature', 'Official max operational temp'])
+    plt.xlabel('Time (MM:SS)')
     plt.ylabel('Temperature (degree C)')
-    return ln,
+    return data_line, danger_line, 
 
 
 def update(frame):
@@ -114,17 +113,21 @@ def update(frame):
     sheet1.write(xls_cnt, 0, str(now_time))
     sheet1.write(xls_cnt, 1, str(cpu_temp))
 
+    # danger line
+    xlim = plt.gca().get_xlim()
+    danger_line.set_data(xlim, [85, 85])
+
     # Append data to graph list
     xdata.append(now_time)
     ydata.append(cpu_temp)
-    ln.set_data(xdata, ydata)
+    data_line.set_data(xdata, ydata)
     print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp))
     
     if len(xdata) > N_SAMPLES*0.8:
         update_grid(xdata[1])
         xdata.pop(0)
         ydata.pop(0)
-    return ln,
+    return data_line, danger_line,
 
 
 
