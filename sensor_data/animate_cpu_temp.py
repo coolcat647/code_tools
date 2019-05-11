@@ -10,16 +10,24 @@ import subprocess
 import matplotlib.dates as md
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.pylab import *
 import pandas as pd
 import xlwt
 from argparse import ArgumentParser
 import atexit
+import psutil
 
 # For graphic
-fig, ax = plt.subplots(figsize=(8, 4.5))
+fig = plt.figure(figsize=(12, 8))
+ax2 = subplot2grid((2,1), (0,0))
+ax1 = subplot2grid((2,1), (1,0))
+# fig, ax1 = plt.subplots(1,2,figsize=(8, 4.5))
+
 xdata, ydata = [], []
-data_line, = plt.plot([], [], '-')
-danger_line, = plt.plot([], [], 'r--')
+cpu_data = []
+data_line, = ax1.plot([], [], '-')
+danger_line, = ax1.plot([], [], 'r--')
+cpu_monitor_line, = ax2.plot([], [], '-', color='C1')
 
 # Custom Parameters
 N_SAMPLES = 100
@@ -37,6 +45,7 @@ global sheet1
 sheet1 = xlsbook.add_sheet('Sheet 1')
 sheet1.write(0, 0, 'Time')
 sheet1.write(0, 1, 'CPU Temperature')
+sheet1.write(0, 2, 'CPU Usage (%)')
 
 global is_saved
 is_saved = False
@@ -72,14 +81,22 @@ def update_grid(start_time):
     xgrid_list = []
     for i in range(N_GRIDS):
         xgrid_list.append(md.date2num(xgrid_start + datetime.timedelta(seconds=i*N_GRIDS*interval_in_ms/1000)))
-    ax.set_xticks(xgrid_list)
-    ax.set_xlim(start_time, end_time)
+    ax1.set_xticks(xgrid_list)
+    ax1.set_xlim(start_time, end_time)
+    ax2.set_xticks(xgrid_list)
+    ax2.set_xlim(start_time, end_time)
     
+    
+def get_cpu_usage():
+    # tmp = str(os.popen("top -n1|awk '/Cpu\(s\):/ {print $2}'").readline().strip())
+    tmp = psutil.cpu_percent()
+    return(float(tmp))
 
 def init():
     # Set X axis format
     xfmt = md.DateFormatter('%M:%S')
-    plt.gca().xaxis.set_major_formatter(xfmt)
+    ax1.xaxis.set_major_formatter(xfmt)
+    ax2.xaxis.set_major_formatter(xfmt)
     
     global xls_cnt
     xls_cnt = 0
@@ -88,23 +105,30 @@ def init():
     global start_time
     start_time = datetime.datetime.now() 
     update_grid(start_time=start_time)
-    ax.set_ylim(20, 100)
+    ax1.set_ylim(20, 100)
+    ax2.set_ylim(0, 100)
 
     # danger line
-    xlim = plt.gca().get_xlim()
+    xlim = ax1.get_xlim()
     danger_line.set_data(xlim, [85, 85])
 
     # Turn on grid, legend, xlabel and ylabel
-    plt.grid(b=None, which='major', axis='both')
-    plt.legend(['CPU Temperature', 'Official max operational temp'])
-    plt.xlabel('Time (MM:SS)')
-    plt.ylabel('Temperature (degree C)')
-    return data_line, danger_line, 
+    ax1.grid(b=None, which='major', axis='both')
+    ax1.legend(['CPU Temperature', 'Official max operational temp'])
+    ax1.set_xlabel('Time (MM:SS)')
+    ax1.set_ylabel('Temperature (degree C)')
+    ax2.grid(b=None, which='major', axis='both')
+    ax2.legend(['CPU Usage'])
+    ax2.set_xlabel('Time (MM:SS)')
+    ax2.set_ylabel('CPU Usage (%)')
+    
+    return data_line, danger_line, cpu_monitor_line
 
 
 def update(frame):
     now_time = datetime.datetime.now()      # x axis data
     cpu_temp = get_cpu_temp()               # y axis data
+    cpu_usage = get_cpu_usage()
     
     # Write data to xls sheet
     global xls_cnt
@@ -112,22 +136,28 @@ def update(frame):
     global sheet1
     sheet1.write(xls_cnt, 0, str(now_time))
     sheet1.write(xls_cnt, 1, str(cpu_temp))
+    sheet1.write(xls_cnt, 2, str(cpu_usage))
 
     # danger line
-    xlim = plt.gca().get_xlim()
+    xlim = ax1.get_xlim()
     danger_line.set_data(xlim, [85, 85])
 
     # Append data to graph list
     xdata.append(now_time)
     ydata.append(cpu_temp)
+    cpu_data.append(cpu_usage)
+
     data_line.set_data(xdata, ydata)
-    print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp))
+    cpu_monitor_line.set_data(xdata, cpu_data)
+
+    print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp), '(\'C) CPU Usage:', str(cpu_usage), '(%)')
     
     if len(xdata) > N_SAMPLES*0.8:
         update_grid(xdata[1])
         xdata.pop(0)
         ydata.pop(0)
-    return data_line, danger_line,
+        cpu_data.pop(0)
+    return data_line, danger_line, cpu_monitor_line
 
 
 
@@ -145,16 +175,22 @@ if __name__ == "__main__":
         while True:
             now_time = datetime.datetime.now()      # x axis data
             cpu_temp = get_cpu_temp()               # y axis data
-    
+            cpu_usage = get_cpu_usage()
+
             # Write data to xls sheet
             global xls_cnt
             xls_cnt = xls_cnt + 1
             global sheet1
             sheet1.write(xls_cnt, 0, str(now_time))
             sheet1.write(xls_cnt, 1, str(cpu_temp))
+            sheet1.write(xls_cnt, 2, str(cpu_usage))
+            
             xdata.append(now_time)
             ydata.append(cpu_temp)
-            print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp))
+            cpu_data.append(cpu_usage)
+            # print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp))
+            print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp), '(\'C) CPU Usage:', str(cpu_usage), '(%)')
+    
             time.sleep(interval_in_ms/1000)
             
     elif args.plot.lower() == 'true':
