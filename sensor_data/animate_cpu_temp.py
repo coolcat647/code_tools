@@ -17,8 +17,10 @@ from argparse import ArgumentParser
 import atexit
 import psutil
 
+import random
+
 # For graphic
-fig = plt.figure(figsize=(12, 8))
+fig = plt.figure(figsize=(12, 10))
 ax2 = subplot2grid((2,1), (0,0))
 ax1 = subplot2grid((2,1), (1,0))
 # fig, ax1 = plt.subplots(1,2,figsize=(8, 4.5))
@@ -28,6 +30,7 @@ cpu_data = []
 data_line, = ax1.plot([], [], '-')
 danger_line, = ax1.plot([], [], 'r--')
 cpu_monitor_line, = ax2.plot([], [], '-', color='C1')
+temp_word = ax1.text([], [], '', fontsize=48, color='b')
 
 # Custom Parameters
 N_SAMPLES = 100
@@ -114,21 +117,23 @@ def init():
 
     # Turn on grid, legend, xlabel and ylabel
     ax1.grid(b=None, which='major', axis='both')
-    ax1.legend(['CPU Temperature', 'Official max operational temp'])
-    ax1.set_xlabel('Time (MM:SS)')
-    ax1.set_ylabel('Temperature (degree C)')
+    ax1.legend(['CPU Temperature', 'Official max operational temp'], loc='upper right')
+    ax1.set_xlabel('Time (MM:SS)', fontsize=20)
+    ax1.set_ylabel('Temperature (' + u"\u2103" +')', fontsize=20)
     ax2.grid(b=None, which='major', axis='both')
     ax2.legend(['CPU Usage'])
-    ax2.set_xlabel('Time (MM:SS)')
-    ax2.set_ylabel('CPU Usage (%)')
+    # ax2.set_xlabel('Time (MM:SS)')
+    ax2.set_ylabel('CPU Usage (%)', fontsize=20)
     
-    return data_line, danger_line, cpu_monitor_line
+    return data_line, danger_line, cpu_monitor_line, temp_word
 
 
 def update(frame):
     now_time = datetime.datetime.now()      # x axis data
-    cpu_temp = get_cpu_temp()               # y axis data
-    cpu_usage = get_cpu_usage()
+    # cpu_temp = get_cpu_temp()               # y axis data
+    # cpu_usage = get_cpu_usage()
+    cpu_temp = random.uniform(20, 100)
+    cpu_usage = random.uniform(20, 100)
     
     # Write data to xls sheet
     global xls_cnt
@@ -149,6 +154,9 @@ def update(frame):
 
     data_line.set_data(xdata, ydata)
     cpu_monitor_line.set_data(xdata, cpu_data)
+    
+    temp_word.set_position([md.date2num(md.num2date(xlim[1]) - datetime.timedelta(seconds=15)), 50])
+    temp_word.set_text('{:.2f}'.format(cpu_temp) + u"\u2103")
 
     print(now_time.strftime('%Y-%m-%d %H:%M:%S'), ' CPU Temp:',str(cpu_temp), '(\'C) CPU Usage:', str(cpu_usage), '(%)')
     
@@ -157,7 +165,7 @@ def update(frame):
         xdata.pop(0)
         ydata.pop(0)
         cpu_data.pop(0)
-    return data_line, danger_line, cpu_monitor_line
+    return data_line, danger_line, cpu_monitor_line, temp_word
 
 
 
