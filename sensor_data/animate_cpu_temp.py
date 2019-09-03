@@ -29,7 +29,7 @@ xdata, ydata = [], []
 cpu_data = []
 data_line, = ax1.plot([], [], '-')
 danger_line, = ax1.plot([], [], 'r--')
-cpu_monitor_line, = ax2.plot([], [], '-', color='C1')
+cpu_monitor_line, = ax2.plot([], [], '-', color='g')
 temp_word = ax1.text([], [], '', fontsize=48, color='b')
 
 # Custom Parameters
@@ -130,10 +130,10 @@ def init():
 
 def update(frame):
     now_time = datetime.datetime.now()      # x axis data
-    # cpu_temp = get_cpu_temp()               # y axis data
-    # cpu_usage = get_cpu_usage()
-    cpu_temp = random.uniform(20, 100)
-    cpu_usage = random.uniform(20, 100)
+    cpu_temp = get_cpu_temp()               # y axis data
+    cpu_usage = get_cpu_usage()
+    #cpu_temp = random.uniform(20, 100)
+    #cpu_usage = random.uniform(20, 100)
     
     # Write data to xls sheet
     global xls_cnt

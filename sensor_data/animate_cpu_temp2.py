@@ -8,9 +8,9 @@ import datetime
 import signal
 import subprocess
 import matplotlib.dates as md
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from matplotlib.pylab import *
+#import matplotlib.pyplot as plt
+#from matplotlib.animation import FuncAnimation
+#from matplotlib.pylab import *
 import pandas as pd
 import xlwt
 from argparse import ArgumentParser
@@ -23,24 +23,24 @@ import time
 import random
 
 # For graphic
-fig = plt.figure(figsize=(12, 10))
-ax2 = subplot2grid((2,1), (0,0))
-ax1 = subplot2grid((2,1), (1,0))
+#fig = plt.figure(figsize=(12, 10))
+#ax2 = subplot2grid((2,1), (0,0))
+#ax1 = subplot2grid((2,1), (1,0))
 # fig, ax1 = plt.subplots(1,2,figsize=(8, 4.5))
 
 xdata, ydata = [], []
 cpu_data = []
-data_line, = ax1.plot([], [], '-')
-danger_line, = ax1.plot([], [], 'r--')
-cpu_monitor_line, = ax2.plot([], [], '-', color='C1')
-temp_word = ax1.text([], [], '', fontsize=48, color='b')
+#data_line, = ax1.plot([], [], '-')
+#danger_line, = ax1.plot([], [], 'r--')
+#cpu_monitor_line, = ax2.plot([], [], '-', color='g')
+#temp_word = ax1.text([], [], '', fontsize=48, color='b')
 
 # Custom Parameters
 N_SAMPLES = 100
 N_GRIDS = 10
 interval_in_ms = 1000
 #Parameter for threads
-NUM_THREADS = 50
+NUM_THREADS = 5
 
 # For data recording
 global start_time
@@ -135,10 +135,10 @@ def init():
 
 def update(frame):
     now_time = datetime.datetime.now()      # x axis data
-    # cpu_temp = get_cpu_temp()               # y axis data
-    # cpu_usage = get_cpu_usage()
-    cpu_temp = random.uniform(20, 100)
-    cpu_usage = random.uniform(20, 100)
+    cpu_temp = get_cpu_temp()               # y axis data
+    cpu_usage = get_cpu_usage()
+    # cpu_temp = random.uniform(20, 100)
+    # cpu_usage = random.uniform(20, 100)
     
     # Write data to xls sheet
     global xls_cnt
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown_callback)
 
     parser = ArgumentParser()
-    parser.add_argument('--plot', '-p', type=str, help='Plot animation: ture or false', default='true')
+    parser.add_argument('--plot', '-p', type=str, help='Plot animation: ture or false', default='false')
     parser.add_argument('--freq', '-f', type=float, help='Sampling frequency in (ms)', default=interval_in_ms)
     parser.add_argument('--thread', '-th', type=int, help='Number of threads', default=NUM_THREADS)
     args = parser.parse_args()
@@ -218,7 +218,7 @@ if __name__ == "__main__":
                 now_time = datetime.datetime.now()      # x axis data
                 cpu_temp = get_cpu_temp()               # y axis data
                 cpu_usage = get_cpu_usage()
-                cpu_temp,cpu_usage = run_thread(NUM_THREADS)
+                # cpu_temp,cpu_usage = run_thread(NUM_THREADS)
     
                 # Write data to xls sheet
                 global xls_cnt
